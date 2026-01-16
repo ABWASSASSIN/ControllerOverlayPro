@@ -1,0 +1,26 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    This file makes the project buildable on a clean CI machine.
+    The build environment provides BAKKESMODSDKDIR (common in CI),
+    and if not provided it falls back to a local default location.
+  -->
+
+  <PropertyGroup>
+    <!-- Prefer CI-provided SDK path -->
+    <BakkesModSDKDir Condition="'$(BAKKESMODSDKDIR)' != ''">$(BAKKESMODSDKDIR)</BakkesModSDKDir>
+
+    <!-- Fallback for local developer machine (optional) -->
+    <BakkesModSDKDir Condition="'$(BakkesModSDKDir)' == ''">$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\</BakkesModSDKDir>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(BakkesModSDKDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+
+    <Link>
+      <AdditionalLibraryDirectories>$(BakkesModSDKDir)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>pluginsdk.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
