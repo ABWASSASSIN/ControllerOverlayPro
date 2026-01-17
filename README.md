@@ -8,7 +8,7 @@ of their controller inputs while playing.
 
 ## Features
 - Real-time controller input overlay
-- Xbox, PS4, and PS5-style skins
+- Custom overlay skins
 - Adjustable position and scale
 - Configurable toggle hotkey (default F9)
 - Overlay remains visible while BakkesMod menu is open
@@ -28,4 +28,5 @@ MIT License
 
 ## Credits
 Designed by ABW ASSASSIN
+
 
