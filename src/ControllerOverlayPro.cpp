@@ -5,7 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Xinput.h>
-#pragma comment(lib, "xinput9_1_0.lib")
+#pragma comment(lib, "xinput.lib")
 
 #include <cmath>
 #include <cctype>
@@ -37,6 +37,7 @@ static bool KeyDown(int vk)
 
 static std::string SkinPath(const std::string& dataFolder, const std::string& skin, const std::string& file)
 {
+    // NOTE: We ONLY support underscore filenames now (no spaces).
     return dataFolder + "/ControllerOverlayPro/skins/" + skin + "/" + file;
 }
 
@@ -163,7 +164,7 @@ static std::string OffKeyX(const std::string& k) { return "xco_off_" + k + "_x";
 static std::string OffKeyY(const std::string& k) { return "xco_off_" + k + "_y"; }
 
 // -------------------- Plugin --------------------
-BAKKESMOD_PLUGIN(ControllerOverlayPro, "Controller Overlay Pro", "1.0.0", PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(ControllerOverlayPro, "Controller Overlay Pro", "1.0.4", PLUGINTYPE_FREEPLAY)
 
 float ControllerOverlayPro::GetOffX(const std::string& key)
 {
@@ -177,7 +178,7 @@ float ControllerOverlayPro::GetOffY(const std::string& key)
 void ControllerOverlayPro::onLoad()
 {
     // Version cvar (for support/debug)
-    cvarManager->registerCvar("xco_version", "1.0.0", "ControllerOverlayPro version (read-only)");
+    cvarManager->registerCvar("xco_version", "1.0.4", "ControllerOverlayPro version (read-only)");
 
     cvarManager->registerCvar("xco_enabled", "1", "Enable overlay (0/1)");
 
@@ -291,34 +292,49 @@ void ControllerOverlayPro::EnsureTexturesLoaded()
 
     const std::string dataFolder = gameWrapper->GetDataFolder().string();
 
-    // Base name changes by skin
-    // xbox: "Xbox Base.png"
-    // ps4 : "PS4 Base.png"
-    // ps5 : "PS5 Base.png"
-    std::string baseFile = "Xbox Base.png";
-    if (skinName == "ps4") baseFile = "PS4 Base.png";
-    else if (skinName == "ps5") baseFile = "PS5 Base.png";
+    auto load = [&](const std::string& key, const std::string& fileName) -> std::shared_ptr<ImageWrapper>
+    {
+        const std::string full = SkinPath(dataFolder, skinName, fileName);
+        std::filesystem::path p = std::filesystem::u8path(full);
 
-    baseImg = MakeImage(SkinPath(dataFolder, skinName, baseFile));
+        if (!std::filesystem::exists(p))
+        {
+            cvarManager->log("[xco] MISSING PNG (underscore format required): " + full);
+            return nullptr;
+        }
 
-    layers["A"] = MakeImage(SkinPath(dataFolder, skinName, "A Button.png"));
-    layers["B"] = MakeImage(SkinPath(dataFolder, skinName, "B Button.png"));
-    layers["X"] = MakeImage(SkinPath(dataFolder, skinName, "X Button.png"));
-    layers["Y"] = MakeImage(SkinPath(dataFolder, skinName, "Y Button.png"));
+        return MakeImage(full);
+    };
 
-    layers["DU"] = MakeImage(SkinPath(dataFolder, skinName, "Dpad Up.png"));
-    layers["DD"] = MakeImage(SkinPath(dataFolder, skinName, "Dpad Down.png"));
-    layers["DL"] = MakeImage(SkinPath(dataFolder, skinName, "Dpad Left.png"));
-    layers["DR"] = MakeImage(SkinPath(dataFolder, skinName, "Dpad Right.png"));
+    // Base name changes by skin (UNDERSCORE FORMAT ONLY)
+    // xbox: "Xbox_Base.png"
+    // ps4 : "PS4_Base.png"
+    // ps5 : "PS5_Base.png"
+    std::string baseFile = "Xbox_Base.png";
+    if (skinName == "ps4") baseFile = "PS4_Base.png";
+    else if (skinName == "ps5") baseFile = "PS5_Base.png";
 
-    layers["LB"] = MakeImage(SkinPath(dataFolder, skinName, "Left Bumper.png"));
-    layers["RB"] = MakeImage(SkinPath(dataFolder, skinName, "Right Bumper.png"));
+    baseImg = load("__BASE__", baseFile);
 
-    layers["LT"] = MakeImage(SkinPath(dataFolder, skinName, "Left Trigger.png"));
-    layers["RT"] = MakeImage(SkinPath(dataFolder, skinName, "Right Trigger.png"));
+    // UNDERSCORE FORMAT ONLY
+    layers["A"]  = load("A",  "A_Button.png");
+    layers["B"]  = load("B",  "B_Button.png");
+    layers["X"]  = load("X",  "X_Button.png");
+    layers["Y"]  = load("Y",  "Y_Button.png");
 
-    layers["L3"] = MakeImage(SkinPath(dataFolder, skinName, "L3.png"));
-    layers["R3"] = MakeImage(SkinPath(dataFolder, skinName, "R3.png"));
+    layers["DU"] = load("DU", "Dpad_Up.png");
+    layers["DD"] = load("DD", "Dpad_Down.png");
+    layers["DL"] = load("DL", "Dpad_Left.png");
+    layers["DR"] = load("DR", "Dpad_Right.png");
+
+    layers["LB"] = load("LB", "Left_Bumper.png");
+    layers["RB"] = load("RB", "Right_Bumper.png");
+
+    layers["LT"] = load("LT", "Left_Trigger.png");
+    layers["RT"] = load("RT", "Right_Trigger.png");
+
+    layers["L3"] = load("L3", "L3.png");
+    layers["R3"] = load("R3", "R3.png");
 
     texturesLoaded = true;
 }
@@ -501,6 +517,7 @@ void ControllerOverlayPro::Render(CanvasWrapper canvas)
     drawIf("DU", st.du);
     drawIf("DD", st.dd);
     drawIf("DL", st.dl);
+    drawIf("DR", st.dr);
     drawIf("DR", st.dr);
 
     drawIf("LB", st.lb);
